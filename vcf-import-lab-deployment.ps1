@@ -698,7 +698,7 @@ if($finalCleanUp -eq 1) {
 
 if($uploadVCFImportTool -eq 1) {
     My-Logger "Connecting to new vCenter Server $VCSADisplayName ..."
-    $viConnection = Connect-VIServer $VCSAIPAddress -User "administrator@vsphere.local" -Password $VCSASSOPassword -WarningAction SilentlyContinue
+    $viConnection = Connect-VIServer $VCSAIPAddress -User "administrator@$VCSASSODomainName" -Password $VCSASSOPassword -WarningAction SilentlyContinue
 
     $VCFImportToolFile = Split-Path $VCFImportToolpath -Leaf
 
