@@ -80,8 +80,8 @@ $VCFImportToolpath = "/root/vcf-brownfield-import-5.2.0.0-24108578.tar.gz"
 
 As part of Day-N operation after successfully convert operation, deploy-nsx: Full Path to VCF 5.2 NSX 4.2.0 Bundle and NSX spec file
 ```console
-$NSXBundlePath = "L:\Downloads\bundle-124941.zip"
-$NsxSpecJsonPath = "L:\Downloads\nsx-deployment-spec.json"
+$NSXBundlePath = "/root/bundle-124941.zip"
+$NsxSpecJsonPath = "/root/nsx-deployment-spec.json"
 ```
 
 This section defines the number of Nested ESXi VMs to deploy along with their associated IP Address(s). The names are the display name of the VMs when deployed and you should ensure these are added to your DNS infrastructure. A minimum of four hosts is required.
