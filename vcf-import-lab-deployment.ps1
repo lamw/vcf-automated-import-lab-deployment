@@ -13,8 +13,8 @@ $SDDCManagerOVA = "/root/VCF-SDDC-Manager-Appliance-5.2.0.0-24108943.ova"
 $VCFImportToolpath = "/root/vcf-brownfield-import-5.2.0.0-24108578.tar.gz"
 
 # Full Path to VCF 5.2 NSX 4.2.0 Bundle and NSX spec file
-$NSXBundlePath = "L:\Downloads\bundle-124941.zip"
-$NsxSpecJsonPath = "L:\Downloads\nsx-deployment-spec.json"
+$NSXBundlePath = "/root/bundle-124941.zip"
+$NsxSpecJsonPath = "/root/nsx-deployment-spec.json"
 
 # Nested ESXi VMs to deploy
 $NestedESXiHostnameToIPs = @{
