@@ -6,11 +6,15 @@ $VIServer = "FILL_ME_IN"
 $VIUsername = "FILL_ME_IN"
 $VIPassword = "FILL_ME_IN"
 
-# Full Path to the Nested ESXi OVA, SDDC OVA, VCF Import Tool & Extracted VCSA ISO
+# Full Path to the Nested ESXi 8.0u3 OVA, SDDC 5.2.0.0 OVA, VCF Import Tool 5.2.0.0 & Extracted VCSA 8.0.3a ISO
 $NestedESXiApplianceOVA = "/root/Nested_ESXi8.0u3_Appliance_Template_v1.ova"
-$VCSAInstallerPath = "/root/VMware-VCSA-all-8.0.3-24022515"
+$VCSAInstallerPath = "/root/VMware-VCSA-all-8.0.3-24091160"
 $SDDCManagerOVA = "/root/VCF-SDDC-Manager-Appliance-5.2.0.0-24108943.ova"
 $VCFImportToolpath = "/root/vcf-brownfield-import-5.2.0.0-24108578.tar.gz"
+
+# Full Path to VCF 5.2 NSX 4.2.0 Bundle and NSX spec file
+$NSXBundlePath = "L:\Downloads\bundle-124941.zip"
+$NsxSpecJsonPath = "L:\Downloads\nsx-deployment-spec.json"
 
 # Nested ESXi VMs to deploy
 $NestedESXiHostnameToIPs = @{
@@ -22,9 +26,9 @@ $NestedESXiHostnameToIPs = @{
 
 # Nested ESXi VM Resources
 $NestedESXivCPU = "6"
-$NestedESXivMEM = "24" #GB
+$NestedESXivMEM = "46" #GB
 $NestedESXiCachingvDisk = "8" #GB
-$NestedESXiCapacityvDisk = "100" #GB
+$NestedESXiCapacityvDisk = "500" #GB
 
 # SDDC Manager Configuration
 $SddcManagerDisplayName = "sddcm"
@@ -72,6 +76,16 @@ $NewVCVDSName = "VDS"
 $NewVCVDSMTU = 9000 # Needs to match your physical MTU
 $NewVCMgmtPortgroupName = "DVPG-Management-Network"
 
+# Deployment Configuration for NSX
+$NSXClusterVipHostname = "$VCFManagementDomainName-nsxm-vip"
+$NSXClusterVip = "172.17.30.95"
+$NSXManagerNode1Hostname = "$VCFManagementDomainName-nsxm-1"
+$NSXManagerNode1IP = "172.17.30.96"
+$NSXManagerNode2Hostname = "$VCFManagementDomainName-nsxm-2"
+$NSXManagerNode2IP = "172.17.30.97"
+$NSXManagerNode3Hostname = "$VCFManagementDomainName-nsxm-3"
+$NSXManagerNode3IP = "172.17.30.98"
+
 # Advanced Configurations
 # Set to 1 only if you have DNS (forward/reverse) for ESXi hostnames
 $addHostByDnsName = 1
@@ -99,7 +113,11 @@ $migrateVmkernelToVDS = 1
 $removeVSS = 1
 $finalCleanUp = 1
 $uploadVCFImportTool = 1
-$generateVCFImportCommand = 1
+$generateVCFImportConvertCommand = 1
+
+$generateNsxSpecJson = 0
+$uploadNSXBundlePath = 0
+$generateVCFImportDeployNSXCommand = 0
 
 $vcsaSize2MemoryStorageMap = @{
 "tiny"=@{"cpu"="2";"mem"="14";"disk"="415"};
@@ -152,6 +170,11 @@ if($preCheck -eq 1) {
         Write-Host -ForegroundColor Red "`nUnable to find $VCFImportToolpath ...`n"
         exit
     }
+        
+    if(!(Test-Path $NSXBundlePath)) {
+        Write-Host -ForegroundColor Red "`nUnable to find $NSXBundlePath ...`n"
+        exit
+    }
 
     if($PSVersionTable.PSEdition -ne "Core") {
         Write-Host -ForegroundColor Red "`tPowerShell Core was not detected, please install that before continuing ... `n"
@@ -171,7 +194,26 @@ if($confirmDeployment -eq 1) {
     Write-Host -ForegroundColor White $SDDCManagerOVA
     Write-Host -NoNewline -ForegroundColor Green "VCF Import Utility Path: "
     Write-Host -ForegroundColor White $VCFImportToolpath
-
+    
+    if($generateNsxSpecJson -eq 1 -and $uploadNSXBundlePath -eq 1 -and $generateVCFImportDeployNSXCommand -eq 1){
+        Write-Host -ForegroundColor Yellow "---- VMware Cloud Foundation (VCF) Import Lab NSX Deployment Configuration ---- "
+        Write-Host -NoNewline -ForegroundColor Green "NSX Bundle Path: "
+        Write-Host -ForegroundColor White $NSXBundlePath
+        Write-Host -NoNewline -ForegroundColor Green "NSX Spec Json Path: "
+        Write-Host -ForegroundColor White $NsxSpecJsonPath
+        
+        Write-Host -NoNewline -ForegroundColor Green "NSX Cluster Vip Hostname: "
+        Write-Host -ForegroundColor White $NSXClusterVipHostname
+        Write-Host -NoNewline -ForegroundColor Green "NSX Cluster Vip : "
+        Write-Host -ForegroundColor White $NSXClusterVip
+        Write-Host -NoNewline -ForegroundColor Green "NSX Manager Node1 Hostname: "
+        Write-Host -ForegroundColor White $NSXManagerNode1Hostname
+        Write-Host -NoNewline -ForegroundColor Green "NSX Manager Node2 Hostname: "
+        Write-Host -ForegroundColor White $NSXManagerNode2Hostname
+        Write-Host -NoNewline -ForegroundColor Green "NSX Manager Node3 Hostname: "
+        Write-Host -ForegroundColor White $NSXManagerNode3Hostname
+    }
+    
     Write-Host -ForegroundColor Yellow "`n---- vCenter Server Deployment Target Configuration ----"
     Write-Host -NoNewline -ForegroundColor Green "vCenter Server Address: "
     Write-Host -ForegroundColor White $VIServer
@@ -197,13 +239,15 @@ if($confirmDeployment -eq 1) {
     Write-Host -NoNewline -ForegroundColor Green "Capacity VMDK: "
     Write-Host -ForegroundColor White "$NestedESXiCapacityvDisk GB"
     Write-Host -NoNewline -ForegroundColor Green "IP Address(s): "
-    Write-Host -ForegroundColor White $NestedESXiHostnameToIPs.Values
+    Write-Host -ForegroundColor White ($NestedESXiHostnameToIPs.Values | Sort-Object)
     Write-Host -NoNewline -ForegroundColor Green "Netmask "
     Write-Host -ForegroundColor White $VMNetmask
     Write-Host -NoNewline -ForegroundColor Green "Gateway: "
     Write-Host -ForegroundColor White $VMGateway
     Write-Host -NoNewline -ForegroundColor Green "DNS: "
     Write-Host -ForegroundColor White $VMDNS
+    Write-Host -NoNewline -ForegroundColor Green "DNS Domain Name (TLD must be =< 6 chars): "
+    Write-Host -ForegroundColor White $VMDomain
     Write-Host -NoNewline -ForegroundColor Green "NTP: "
     Write-Host -ForegroundColor White $VMNTP
     Write-Host -NoNewline -ForegroundColor Green "Syslog: "
@@ -238,6 +282,8 @@ if($confirmDeployment -eq 1) {
     Write-Host -ForegroundColor White $VMGateway
     Write-Host -NoNewline -ForegroundColor Green "FIPS Enabled: "
     Write-Host -ForegroundColor White $SddcManagerFIPSEnable
+    Write-Host -NoNewline -ForegroundColor Green "VCF Management Domain Name: "
+    Write-Host -ForegroundColor White $VCFManagementDomainName
 
     $esxiTotalCPU = $NestedESXiHostnameToIPs.count * [int]$NestedESXivCPU
     $esxiTotalMemory = $NestedESXiHostnameToIPs.count * [int]$NestedESXivMEM
@@ -724,10 +770,67 @@ if($uploadVCFImportTool -eq 1) {
     Disconnect-VIServer -Server $viConnection -Confirm:$false
 }
 
-if($generateVCFImportCommand -eq 1) {
+if($generateVCFImportConvertCommand -eq 1) {
     My-Logger "SSH to SDDC Manager $($SddcManagerHostname) using ``vcf`` account and run the following command in VCF Import Tool Directory:"
     My-Logger " "
     My-Logger "python3 vcf_brownfield.py convert --vcenter `'$($VCSAHostname + "." + $VMDomain)`' --sso-user `'administrator@$($VCSASSODomainName)`' --domain-name `'$($VCFManagementDomainName)`' --skip-nsx-deployment --sso-password 'VMware1!' --vcenter-root-password `'$($VCSARootPassword)`' --local-admin-password `'$($SddcManagerLocalPassword)`' --backup-password `'$($SddcManagerBackupPassword)`' --accept-trust --suppress-warnings"
+}
+
+if($generateNsxSpecJson -eq 1) {
+    $vcfConfig = [ordered]@{
+	  "deploy_without_license_keys" = $true
+	  "form_factor" = "small"
+	  "admin_password" = "$SddcManagerAdminPassword"
+	  "install_bundle_path" = "/nfs/vmware/vcf/nfs-mount/bundle/bundle-124941.zip"
+	  "cluster_ip" = "$NSXClusterVip"
+	  "cluster_fqdn" = "$NSXClusterVipHostname.$VMDomain"
+	  "manager_specs" = @([ordered]@{
+			  "fqdn" = "$NSXManagerNode1Hostname.$VMDomain";
+			  "name" = "$NSXManagerNode1Hostname";
+			  "ip_address" = "$NSXManagerNode1IP";
+			  "gateway" = "$VMGateway";
+			  "subnet_mask" = "$VMNetmask";
+		  }, [ordered]@{
+			  "fqdn" = "$NSXManagerNode2Hostname.$VMDomain";
+			  "name" = "$NSXManagerNode2Hostname";
+			  "ip_address" = "$NSXManagerNode2IP";
+			  "gateway" = "$VMGateway";
+			  "subnet_mask" = "$VMNetmask";
+		  }, [ordered]@{
+			  "fqdn" = "$NSXManagerNode3Hostname.$VMDomain";
+			  "name" = "$NSXManagerNode3Hostname";
+			  "ip_address" = "$NSXManagerNode3IP";
+			  "gateway" = "$VMGateway";
+			  "subnet_mask" = "$VMNetmask";
+		  })
+	}
+    My-Logger "Generating NSX Spec deployment file $NsxSpecJsonPath"
+    $vcfConfig | ConvertTo-Json -Depth 20 -WarningAction Ignore | Set-Content -Path $NsxSpecJsonPath
+}
+
+if($uploadNSXBundlePath -eq 1) {
+    My-Logger "Connecting to new vCenter Server $VCSADisplayName ..."
+    $viConnection = Connect-VIServer $VCSAIPAddress -User "administrator@vsphere.local" -Password $VCSASSOPassword -WarningAction SilentlyContinue
+
+	$NsxSpecJsonFile = Split-Path $NsxSpecJsonPath -Leaf
+
+    # SDDCm
+    $sddcmVM = Get-VM -Server $viConnection $SddcManagerDisplayName
+
+    My-Logger "Copying $NsxSpecJsonPath to SDDC Manager $SddcManagerDisplayName under /home/vcf ..."
+    Copy-VMGuestFile -VM $sddcmVM -Source $NsxSpecJsonPath -Destination "/home/vcf/$NsxSpecJsonFile" -LocalToGuest -GuestUser "vcf" -GuestPassword $SddcManagerVcfPassword -Force -Confirm:$false
+	
+    My-Logger "Copying $NSXBundlePath to SDDC Manager $SddcManagerDisplayName under /nfs/vmware/vcf/nfs-mount/bundle ..."
+	scp -po StrictHostKeyChecking=no $NSXBundlePath "vcf@sddcm:/nfs/vmware/vcf/nfs-mount/bundle"
+
+    My-Logger "Disconnecting from $VIServer ..."
+    Disconnect-VIServer -Server $viConnection -Confirm:$false
+}
+
+if($generateVCFImportDeployNSXCommand -eq 1) {
+    My-Logger "SSH to SDDC Manager $($SddcManagerHostname) using ``vcf`` account and run the following command in VCF Import Tool Directory:"
+    My-Logger " "
+    My-Logger "python3 vcf_brownfield.py deploy-nsx --vcenter `'$($VCSAHostname + "." + $VMDomain)`' --local-admin-password `'$($SddcManagerLocalPassword)`' --nsx-deployment-spec-path `'$('/home/vcf/' + $NsxSpecJsonFile)`'"
 }
 
 $EndTime = Get-Date
