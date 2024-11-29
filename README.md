@@ -35,11 +35,29 @@ Below is a diagram of what is deployed as part of the solution and you simply ne
      * $SddcManagerHostname ssh key will be added to your ~/.ssh/known_hosts, upon retry delete the line start by sddcm,...
   * updated vCenter link version 8.03Ua Official part of VCF 5.2 BOM
 
+* *29/11/2024**
+  * Branch Added support for VCF 5.2.1,
+     * Moved SCP the NSX bundle and merged nsx Json spec into convert generated command (mandatory in VCF 5.2.1 import tool),
+     * Set VMKernel default gateway, that is a guardrails requirement of VCF 5.2.1 import tool "Checks if Per-NIC Default Gateway is disabled in the vSAN cluster" KB https://knowledge.broadcom.com/external/article/371494 or https://knowledge.broadcom.com/external/article/308257 This code tick Override Default Gateway in VMkernel Edit vCenter UI (Credit LucD for the borrowed code),
+     * Moved SDDC Manager deployment after VSAN alarm cleanup to prevent delay in deployment and added 7 minutes wait for it to fully bootup
+     * Added VSAN Storage Policy name and SPBM rule hostFailureToTolerate variables
+     * Added NSX FormFactor variable
+  * Added requirement for SCP to be installed
+  * Updated requirement for CPU clocks
+  * Updated VCF 5.2.1 BOM and with VCSA 8.0u3d instead of 8.0u3c initially required
+  * Added FAQ - Troubleshooting Section to
+     * Resize to single NSX Cluster,
+     * When to shutdown NSX to accomodate resources,
+     * When need redeploy upon seeing DNS and NTP convert errors, 
+     * Variables to set in case scp didn't succeed to continue the copy
+  * Related [Blog post](https://strivevirtually.net/post/automated-vmware-cloud-foundation-vcf-5.2.1-import-lab-with-nsx-deployment-script/)
+
 ## Requirements
 
 | VCF Version | VCF Import Tool                                                                                                                                                                                                                              | SDDC Manager OVA                                                                                                                                                                                                                         | VCSA ISO                                                                                                                                                                                                    | Nested ESXi                                                       |
 |-------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
-| 5.2         | [ vcf-brownfield-import-5.2.0.0-24108578.tar.gz ]( https://support.broadcom.com/group/ecx/productfiles?subFamily=VMware%20Cloud%20Foundation&displayGroup=VMware%20Cloud%20Foundation%205.2&release=5.2&os=&servicePk=520823&language=EN ) | [VCF-SDDC-Manager-Appliance-5.2.0.0-24108943.ova](https://support.broadcom.com/group/ecx/productfiles?subFamily=VMware%20Cloud%20Foundation&displayGroup=VMware%20Cloud%20Foundation%205.2&release=5.2&os=&servicePk=520823&language=EN) | [VMware-VCSA-all-8.0.3-24091160.iso](https://support.broadcom.com/web/ecx/solutiondetails?patchId=5475) | [ Nested ESXi 8.0 Update 3 OVA ]( https://community.broadcom.com/flings ) |
+| 5.2.1         | [ vcf-brownfield-import-5.2.1.0-24307788.tar.gz ](
+https://support.broadcom.com/group/ecx/productfiles?subFamily=VMware%20Cloud%20Foundation&displayGroup=VMware%20Cloud%20Foundation%205.2&release=5.2.1&os=&servicePk=523724&language=EN) | [VCF-SDDC-Manager-Appliance-5.2.1.0-24307856.ova](https://support.broadcom.com/group/ecx/productfiles?subFamily=VMware%20Cloud%20Foundation&displayGroup=VMware%20Cloud%20Foundation%205.2&release=5.2.1&os=&servicePk=523724&language=EN) | [VMware-VCSA-all-8.0.3-24322831.iso](https://support.broadcom.com/web/ecx/solutiondetails?patchId=5574) | [ Nested ESXi 8.0 Update 3b OVA ]( https://community.broadcom.com/flings ) |
 
 * vCenter Server running at least vSphere 7.0 or later
     * If your physical storage is vSAN, please ensure you've applied the following setting as mentioned [here](https://www.williamlam.com/2013/11/how-to-run-nested-esxi-on-top-of-vsan.html)
@@ -47,7 +65,7 @@ Below is a diagram of what is deployed as part of the solution and you simply ne
   * Enable either [MAC Learning](https://williamlam.com/2018/04/native-mac-learning-in-vsphere-6-7-removes-the-need-for-promiscuous-mode-for-nested-esxi.html) or [Promiscuous Mode](https://kb.vmware.com/kb/1004099) on your physical ESXi host networking to ensure proper network connectivity for Nested ESXi workloads
 * Resource Requirements
     * Compute
-        * Ability to provision VMs with up to 6 vCPU
+        * Ability to provision VMs with up to 6 vCPU totalling 20Ghz so 3.33Ghz per core
         * Ability to provision up to 126 GB of memory
         * DRS-enabled Cluster (not required but vApp creation will not be possible)
     * Network
@@ -56,6 +74,7 @@ Below is a diagram of what is deployed as part of the solution and you simply ne
     * Storage
         * Ability to provision up to 1.7 TB of storage (will be thin provisioned)
 * Desktop (Windows, Mac or Linux) with latest PowerShell Core and PowerCLI 13 or later installed. See [instructions here](https://blogs.vmware.com/PowerCLI/2018/03/installing-powercli-10-0-0-macos.html) for more details
+* OpenSSH Server installed to have the tool SSH and SCP.
 
 ## Configuration
 
@@ -72,15 +91,15 @@ $VIPassword = "FILL_ME_IN"
 This section describes the location of the files required for deployment which must be accessible from where you are running the deployment script.
 
 ```console
-$NestedESXiApplianceOVA = "/root/Nested_ESXi8.0u3_Appliance_Template_v1.ova"
-$VCSAInstallerPath = "/root/VMware-VCSA-all-8.0.3-24091160"
-$SDDCManagerOVA = "/root/VCF-SDDC-Manager-Appliance-5.2.0.0-24108943.ova"
-$VCFImportToolpath = "/root/vcf-brownfield-import-5.2.0.0-24108578.tar.gz"
+$NestedESXiApplianceOVA = "/root/Nested_ESXi8.0u3b_Appliance_Template_v1.ova"
+$VCSAInstallerPath = "/root/VMware-VCSA-all-8.0.3-24322831"
+$SDDCManagerOVA = "/root/VCF-SDDC-Manager-Appliance-5.2.1.0-24307856.ova"
+$VCFImportToolpath = "/root/vcf-brownfield-import-5.2.1.0-24307788.tar.gz"
 ```
 
-As part of Day-N operation after successfully convert operation, deploy-nsx: Full Path to VCF 5.2 NSX 4.2.0 Bundle and NSX spec file
+Full Path to VCF 5.2.1 NSX 4.2.1 Bundle and, NSX spec file that will be generated. Path can be in windows form "c:\...\bundle-133764.zip"
 ```console
-$NSXBundlePath = "/root/bundle-124941.zip"
+$NSXBundlePath = "/root/bundle-133764.zip"
 $NsxSpecJsonPath = "/root/nsx-deployment-spec.json"
 ```
 
@@ -95,13 +114,13 @@ $NestedESXiHostnameToIPs = @{
 }
 ```
 
-This section describes the amount resources to allocate to the Nested ESXi VM(s) which will host both the VCSA and SDDC Manager appliances, vMEM and vDisk increased for NSX single node
+This section describes the amount resources to allocate to the Nested ESXi VM(s) which will host both the VCSA and SDDC Manager appliances, vMEM and CapacityvDisk increased for NSX single node
 
 ```console
 $NestedESXivCPU = "6"
-$NestedESXivMEM = "46" #GB  "24" without NSX
+$NestedESXivMEM = "46" #GB
 $NestedESXiCachingvDisk = "8" #GB
-$NestedESXiCapacityvDisk = "500" #GB "100" without NSX
+$NestedESXiCapacityvDisk = "500" #GB
 ```
 
 This section describes the configurations that will be used to deploy the SDDC Manager within the Nested ESXi environment:
@@ -159,10 +178,13 @@ $NewVCVSANClusterName = "Cluster"
 $NewVCVDSName = "VDS"
 $NewVCVDSMTU = 9000 # Needs to match your physical MTU
 $NewVCMgmtPortgroupName = "DVPG-Management-Network"
+$StoragePolicyName = "vsan-ftt-storage-policy"
+$hostFailuresToTolerate = 0
 ```
 
 This section describes the deploy NSX configuration and importantly, although we will deploy a single node by modifying SDDC Manager, the 3 node must have valid dns/reverse dns records
 ```console
+$NsxFormFactor = "small"
 $NSXClusterVipHostname = "$VCFManagementDomainName-nsxm-vip"
 $NSXClusterVip = "172.17.30.95"
 $NSXManagerNode1Hostname = "$VCFManagementDomainName-nsxm-1"
@@ -173,7 +195,59 @@ $NSXManagerNode3Hostname = "$VCFManagementDomainName-nsxm-3"
 $NSXManagerNode3IP = "172.17.30.98"
 ```
 
-This section describes the Day-N deploy NSX variables and importantly, the password $SddcManagerLocalPassword will be asked and, $SddcManagerHostname will be add to your ~/.ssh/known_hosts, upon retry  delete the line start by sddcm,...
+All variables are filled with \1 normally.
+```console
+$preCheck = 1
+$confirmDeployment = 1
+$deployNestedESXiVMs = 1
+$moveVMsIntovApp = 1
+$bootStrapFirstNestedESXiVM = 1
+$deployVCSA = 1
+$setupNewVC = 1
+$addESXiHostsToVC = 1
+$configureVSANDiskGroup = 1
+$setupVsanStoragePolicy = 1
+$configureVDS = 1
+$migrateVMstoVDS = 1
+$migrateVmkernelToVDS = 1
+$removeVSS = 1
+$finalCleanUp = 1
+$deploySDDCManager = 1
+$uploadVCFImportTool = 1
+$generateNsxSpecJson = 1
+$uploadNSXBundlePath = 1
+$generateVCFImportConvertCommand = 1
+```
+
+Once you have saved your changes, you can now run the PowerCLI script as you normally would.
+
+## Logging
+
+There is additional verbose logging that outputs as a log file in your current working directory **vcf-import-lab-deployment.log**
+
+## FAQ - Troubleshooting
+
+- Before entering the convert command be sure to resize NSX cluster a single node using following
+```console
+su -
+
+cat >> /etc/vmware/vcf/domainmanager/application-prod.properties << EOF
+nsxt.manager.cluster.size=1  
+nsxt.manager.wait.minutes=120  
+EOF
+
+systemctl restart domainmanager.service
+
+watch 'systemctl status domainmanager.service'
+
+```
+
+
+- NSX need to be shutdown after deploy firstboot upon seeing "Failed to start VMware File Integrity Checker" to accomodate from \16GB to 20GB of RAM and to disable reservation both CPU and RAM
+
+- If, at begining of the convert, you see errors regarding DNS and NTP, that means something went wrong and you have to redeploy.
+
+- The following describes the variables to set in case you misstyped the password for scp or didn't clean known_hosts from previous deployment and importantly, the password $SddcManagerLocalPassword will be asked by scp at the end and, $SddcManagerHostname will be add to your ~/.ssh/known_hosts, upon redeploy delete the line start by sddcm,...
 ```console
 $preCheck = 1
 $confirmDeployment = 1
@@ -184,25 +258,18 @@ $deployVCSA = 0
 $setupNewVC = 0
 $addESXiHostsToVC = 0
 $configureVSANDiskGroup = 0
-$deploySDDCManager = 0
+$setupVsanStoragePolicy = 0
 $configureVDS = 0
 $migrateVMstoVDS = 0
 $migrateVmkernelToVDS = 0
 $removeVSS = 0
 $finalCleanUp = 0
+$deploySDDCManager = 0
 $uploadVCFImportTool = 0
-$generateVCFImportConvertCommand = 0
-
-$generateNsxSpecJson = 1
+$generateNsxSpecJson = 0
 $uploadNSXBundlePath = 1
-$generateVCFImportDeployNSXCommand = 1
+$generateVCFImportConvertCommand = 1
 ```
-
-Once you have saved your changes, you can now run the PowerCLI script as you normally would.
-
-## Logging
-
-There is additional verbose logging that outputs as a log file in your current working directory **vcf-import-lab-deployment.log**
 
 ## Sample Execution
 
@@ -229,7 +296,7 @@ Step 1 - The VCF Import Tool has already been copied to the SDDC Manager VM, you
 Step 2 - Change into the VCF Import Tool directory which is located within `/home/vcf` directory:
 
 ```console
-cd vcf-brownfield-import-5.2.0.0-24108578/vcf-brownfield-toolset/
+cd vcf-brownfield-import-5.2.1.0-24307788\vcf-brownfield-toolset/
 ```
 
 Step 2 - Copy the python command output from the orignial deployment script, which will convert the vSphere environment into a VCF Management Domain
