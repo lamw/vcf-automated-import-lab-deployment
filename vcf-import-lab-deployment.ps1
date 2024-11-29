@@ -1,20 +1,22 @@
 # Author: William Lam
 # Website: www.williamlam.com
+# Contributor: Abbed Sedkaoui
+# Website: strivevirtually.net
 
 # vCenter Server used to deploy VCF Import Lab
 $VIServer = "FILL_ME_IN"
 $VIUsername = "FILL_ME_IN"
 $VIPassword = "FILL_ME_IN"
 
-# Full Path to the Nested ESXi 8.0u3 OVA, SDDC 5.2.0.0 OVA, VCF Import Tool 5.2.0.0 & Extracted VCSA 8.0.3a ISO
-$NestedESXiApplianceOVA = "/root/Nested_ESXi8.0u3_Appliance_Template_v1.ova"
-$VCSAInstallerPath = "/root/VMware-VCSA-all-8.0.3-24091160"
-$SDDCManagerOVA = "/root/VCF-SDDC-Manager-Appliance-5.2.0.0-24108943.ova"
-$VCFImportToolpath = "/root/vcf-brownfield-import-5.2.0.0-24108578.tar.gz"
+# Full Path to the Nested ESXi 8.0u3b OVA, SDDC 5.2.1.0 OVA, VCF Import Tool 5.2.1.0 & Extracted VCSA 8.0.3d ISO
+$NestedESXiApplianceOVA = "L:\Downloads\Nested_ESXi8.0u3b_Appliance_Template_v1.ova"
+$VCSAInstallerPath = "L:\Downloads\VMware-VCSA-all-8.0.3-24322831"
+$SDDCManagerOVA = "L:\Downloads\VCF-SDDC-Manager-Appliance-5.2.1.0-24307856.ova"
+$VCFImportToolpath = "L:\Downloads\vcf-brownfield-import-5.2.1.0-24307788.tar.gz"
 
-# Full Path to VCF 5.2 NSX 4.2.0 Bundle and NSX spec file
-$NSXBundlePath = "/root/bundle-124941.zip"
-$NsxSpecJsonPath = "/root/nsx-deployment-spec.json"
+# Full Path to VCF 5.2.1 NSX 4.2.1 Bundle and NSX spec file
+$NSXBundlePath = "L:\Downloads\bundle-133764.zip"
+$NsxSpecJsonPath = "L:\Downloads\nsx-deployment-spec.json"
 
 # Nested ESXi VMs to deploy
 $NestedESXiHostnameToIPs = @{
@@ -75,16 +77,20 @@ $NewVCVSANClusterName = "Cluster"
 $NewVCVDSName = "VDS"
 $NewVCVDSMTU = 9000 # Needs to match your physical MTU
 $NewVCMgmtPortgroupName = "DVPG-Management-Network"
+$StoragePolicyName = "vsan-ftt-storage-policy"
+$hostFailuresToTolerate = 0
 
 # Deployment Configuration for NSX
+$NsxFormFactor = "small"
 $NSXClusterVipHostname = "$VCFManagementDomainName-nsxm-vip"
-$NSXClusterVip = "172.17.30.95"
+$NSXClusterVip = "172.30.0.95"
 $NSXManagerNode1Hostname = "$VCFManagementDomainName-nsxm-1"
-$NSXManagerNode1IP = "172.17.30.96"
+$NSXManagerNode1IP = "172.30.0.96"
 $NSXManagerNode2Hostname = "$VCFManagementDomainName-nsxm-2"
-$NSXManagerNode2IP = "172.17.30.97"
+$NSXManagerNode2IP = "172.30.0.97"
 $NSXManagerNode3Hostname = "$VCFManagementDomainName-nsxm-3"
-$NSXManagerNode3IP = "172.17.30.98"
+$NSXManagerNode3IP = "172.30.0.98"
+
 
 # Advanced Configurations
 # Set to 1 only if you have DNS (forward/reverse) for ESXi hostnames
@@ -106,18 +112,18 @@ $deployVCSA = 1
 $setupNewVC = 1
 $addESXiHostsToVC = 1
 $configureVSANDiskGroup = 1
-$deploySDDCManager = 1
+$setupVsanStoragePolicy = 1
 $configureVDS = 1
 $migrateVMstoVDS = 1
 $migrateVmkernelToVDS = 1
 $removeVSS = 1
 $finalCleanUp = 1
+$deploySDDCManager = 1
 $uploadVCFImportTool = 1
+$generateNsxSpecJson = 1
+$uploadNSXBundlePath = 1
 $generateVCFImportConvertCommand = 1
 
-$generateNsxSpecJson = 0
-$uploadNSXBundlePath = 0
-$generateVCFImportDeployNSXCommand = 0
 
 $vcsaSize2MemoryStorageMap = @{
 "tiny"=@{"cpu"="2";"mem"="14";"disk"="415"};
@@ -170,7 +176,7 @@ if($preCheck -eq 1) {
         Write-Host -ForegroundColor Red "`nUnable to find $VCFImportToolpath ...`n"
         exit
     }
-        
+    
     if(!(Test-Path $NSXBundlePath)) {
         Write-Host -ForegroundColor Red "`nUnable to find $NSXBundlePath ...`n"
         exit
@@ -195,8 +201,10 @@ if($confirmDeployment -eq 1) {
     Write-Host -NoNewline -ForegroundColor Green "VCF Import Utility Path: "
     Write-Host -ForegroundColor White $VCFImportToolpath
     
-    if($generateNsxSpecJson -eq 1 -and $uploadNSXBundlePath -eq 1 -and $generateVCFImportDeployNSXCommand -eq 1){
+    if($generateNsxSpecJson -eq 1 -and $uploadNSXBundlePath -eq 1){
         Write-Host -ForegroundColor Yellow "---- VMware Cloud Foundation (VCF) Import Lab NSX Deployment Configuration ---- "
+        Write-Host -NoNewline -ForegroundColor Green "NSX Form factor: "
+        Write-Host -ForegroundColor White $NsxFormFactor
         Write-Host -NoNewline -ForegroundColor Green "NSX Bundle Path: "
         Write-Host -ForegroundColor White $NSXBundlePath
         Write-Host -NoNewline -ForegroundColor Green "NSX Spec Json Path: "
@@ -213,7 +221,7 @@ if($confirmDeployment -eq 1) {
         Write-Host -NoNewline -ForegroundColor Green "NSX Manager Node3 Hostname: "
         Write-Host -ForegroundColor White $NSXManagerNode3Hostname
     }
-    
+
     Write-Host -ForegroundColor Yellow "`n---- vCenter Server Deployment Target Configuration ----"
     Write-Host -NoNewline -ForegroundColor Green "vCenter Server Address: "
     Write-Host -ForegroundColor White $VIServer
@@ -441,7 +449,7 @@ if($bootStrapFirstNestedESXiVM -eq 1) {
 
     My-Logger "Updating the ESXi host VSAN Policy to allow Force Provisioning ..."
     $esxcli = Get-EsxCli -Server $vEsxi -V2
-    $VSANPolicy = '(("hostFailuresToTolerate" i1) ("forceProvisioning" i1))'
+    $VSANPolicy = '(("hostFailuresToTolerate" i0) ("forceProvisioning" i1))'
     $VSANPolicyDefaults = $esxcli.vsan.policy.setdefault.CreateArgs()
     $VSANPolicyDefaults.policy = $VSANPolicy
     $VSANPolicyDefaults.policyclass = "vdisk"
@@ -604,50 +612,26 @@ if($setupNewVC -eq 1) {
             }
         }
     }
+    
+    if($setupVsanStoragePolicy -eq 1) {
+        $datastore = Get-Datastore -Server $vc -Name "vsanDatastore" | Select -First 1
+        My-Logger "Creating VSAN Storage Policies $StoragePolicyName and attaching to $datastore ..."        
+        $ftt = Get-SpbmCapability -Name 'VSAN.hostFailuresToTolerate'
+        $fttRule = New-SpbmRule -Capability $ftt -value $hostFailuresToTolerate
+        $fttRuleSet = New-SpbmRuleSet -AllOfRules $fttRule
+        $fttVsanPolicy = New-SpbmStoragePolicy -Name $StoragePolicyName -Description 'This policy is created by using hostFailuresToTolerate capability' -AnyOfRuleSets $fttRuleSet
+        Set-SpbmEntityConfiguration -Configuration (Get-SpbmEntityConfiguration $datastore) -StoragePolicy $fttVsanPolicy | Out-File -Append -LiteralPath $verboseLogFile
+        
+        My-Logger "Associate $StoragePolicyName with $VCSADisplayName ..."
+        $vm = Get-VM -Name $VCSADisplayName
+        Set-SpbmEntityConfiguration -Configuration (Get-SpbmEntityConfiguration -VM $vm) -StoragePolicy $fttVsanPolicy | Out-File -Append -LiteralPath $verboseLogFile
+    }
+    Start-Sleep -Seconds 120
 
     My-Logger "Disconnecting from new VCSA ..."
     Disconnect-VIServer $vc -Confirm:$false
 }
 
-if($deploySDDCManager -eq 1) {
-    My-Logger "Connecting to the new VCSA ..."
-    $vc = Connect-VIServer $VCSAIPAddress -User "administrator@$VCSASSODomainName" -Password $VCSASSOPassword -WarningAction SilentlyContinue
-
-    $datastore = Get-Datastore -Server $vc -Name "vsanDatastore" | Select -First 1
-    $cluster = Get-Cluster -Server $vc -Name $NewVCVSANClusterName
-
-    $vmhost = $cluster | Get-VMHost | where {$_.Name -ne $((Get-VM -Server $vc -Name $VCSADisplayName | Get-VMHost).Name)} | Select -Last 1
-
-    $ovfconfig = Get-OvfConfiguration -Server $vc $SDDCManagerOVA
-    $networkMapLabel = ($ovfconfig.ToHashTable().keys | where {$_ -Match "NetworkMapping"}).replace("NetworkMapping.","").replace("-","_").replace(" ","_")
-    $ovfconfig.NetworkMapping.$networkMapLabel.value = "VM Network"
-
-    $sddcmFQDN = $SddcManagerHostname + "." + $VMDomain
-
-    $ovfconfig.common.ROOT_PASSWORD.value = $SddcManagerRootPassword
-    $ovfconfig.common.VCF_PASSWORD.value = $SddcManagerVcfPassword
-    $ovfconfig.common.BASIC_AUTH_PASSWORD.value = $SddcManagerAdminPassword
-    $ovfconfig.common.BACKUP_PASSWORD.value = $SddcManagerBackupPassword
-    $ovfconfig.common.LOCAL_USER_PASSWORD.value = $SddcManagerLocalPassword
-    $ovfconfig.common.vami.hostname.value = $sddcmFQDN
-    $ovfconfig.Common.guestinfo.ntp.value = $VMNTP
-    $ovfconfig.Common.FIPS_ENABLE.value = $SddcManagerFIPSEnable
-    $ovfconfig.vami.SDDC_Manager.ip0.value = $SddcManagerIP
-    $ovfconfig.vami.SDDC_Manager.netmask0.value = $VMNetmask
-    $ovfconfig.vami.SDDC_Manager.gateway.value = $VMGateway
-    $ovfconfig.vami.SDDC_Manager.domain.value = $VMDomain
-    $ovfconfig.vami.SDDC_Manager.searchpath.value = $VMDomain
-    $ovfconfig.vami.SDDC_Manager.DNS.value = $VMDNS
-
-    My-Logger "Deploying SDDC Manager VM $SddcManagerDisplayName ..."
-    $vm = Import-VApp -Server $vc -Source $SDDCManagerOVA -OvfConfiguration $ovfconfig -Name $SddcManagerDisplayName -Location $NewVCVSANClusterName -VMHost $vmhost -Datastore $datastore -DiskStorageFormat thin
-
-    My-Logger "Powering On VM ..."
-    $vm | Start-Vm -RunAsync | Out-Null
-
-    My-Logger "Disconnecting from new VCSA ..."
-    Disconnect-VIServer $vc -Confirm:$false
-}
 
 if($configureVDS -eq 1) {
     My-Logger "Connecting to the new VCSA ..."
@@ -681,7 +665,6 @@ if($configureVDS -eq 1) {
 
         My-Logger "Reconfiguring VMs to Distributed Portgroup ..."
         Get-VM -Server $vc -Name $VCSADisplayName | Get-NetworkAdapter | Set-NetworkAdapter -Portgroup $dvPortGroup -Confirm:$false | Out-File -Append -LiteralPath $verboseLogFile
-        Get-VM -Server $vc -Name $SddcManagerDisplayName | Get-NetworkAdapter | Set-NetworkAdapter -Portgroup $dvPortGroup -Confirm:$false | Out-File -Append -LiteralPath $verboseLogFile
     }
 
     if($migrateVmkernelToVDS -eq 1) {
@@ -730,6 +713,21 @@ if($finalCleanUp -eq 1) {
 
         # Enable vMotion traffic
         $vmhost | Get-VMHostNetworkAdapter -VMKernel | Set-VMHostNetworkAdapter -VMotionEnabled $true -Confirm:$false | Out-File -Append -LiteralPath $verboseLogFile
+        
+        # Set VMKernel default gateway, that is a requirement of VCF 5.2.1 "Checks if Per-NIC Default Gateway is disabled in the vSAN cluster" KB https://knowledge.broadcom.com/external/article/371494 or https://knowledge.broadcom.com/external/article/308257 This code tick Override Default Gateway in VMkernel Edit vCenter UI (Credit LucD for the borrowed code below)
+        $vmhostIPAddress = ($vmhost.ExtensionData.Config.Network.Vnic | ? {$_.Device -eq "vmk0"}).Spec.Ip.IpAddress
+        $vEsxi = Connect-VIServer -Server $vmhostIPAddress -User root -Password $VMPassword -WarningAction SilentlyContinue
+        My-Logger "Updating for VCF 5.2.1 $vmhost VSAN Per-NIC VMKernel Default Gateway (tick Override default gateway for this adapter in vCenter UI) ..."
+        $esxcli = Get-EsxCli -Server $vEsxi -V2
+        $if = $esxcli.network.ip.interface.ipv4.get.Invoke(@{interfacename="vmk0"})
+        $iArg = @{
+            netmask = $if[0].IPv4Netmask
+            type    = $if[0].AddressType.ToLower()
+            ipv4    = $if[0].IPv4Address
+            interfacename = $if[0].Name
+            gateway = $VMGateway
+        }
+        $esxcli.network.ip.interface.ipv4.set.Invoke($iArg) | Out-File -Append -LiteralPath $verboseLogFile
 
         if($vmhost.ConnectionState -eq "Maintenance") {
             Set-VMHost -VMhost $vmhost -State Connected -RunAsync -Confirm:$false | Out-File -Append -LiteralPath $verboseLogFile
@@ -737,6 +735,49 @@ if($finalCleanUp -eq 1) {
     }
 
     Get-Cluster -Server $vc $NewVCVSANClusterName -ErrorAction Ignore | Set-Cluster -DrsAutomationLevel FullyAutomated -Confirm:$false | Out-File -Append -LiteralPath $verboseLogFile
+
+    My-Logger "Disconnecting from new VCSA ..."
+    Disconnect-VIServer $vc -Confirm:$false
+}
+
+if($deploySDDCManager -eq 1) {
+    My-Logger "Connecting to the new VCSA ..."
+    $vc = Connect-VIServer $VCSAIPAddress -User "administrator@$VCSASSODomainName" -Password $VCSASSOPassword -WarningAction SilentlyContinue
+
+    $datastore = Get-Datastore -Server $vc -Name "vsanDatastore" | Select -First 1
+    $cluster = Get-Cluster -Server $vc -Name $NewVCVSANClusterName
+
+    $vmhost = $cluster | Get-VMHost | where {$_.Name -ne $((Get-VM -Server $vc -Name $VCSADisplayName | Get-VMHost).Name)} | Select -Last 1
+
+    $ovfconfig = Get-OvfConfiguration -Server $vc $SDDCManagerOVA
+    $networkMapLabel = ($ovfconfig.ToHashTable().keys | where {$_ -Match "NetworkMapping"}).replace("NetworkMapping.","").replace("-","_").replace(" ","_")
+    $ovfconfig.NetworkMapping.$networkMapLabel.value = $NewVCMgmtPortgroupName
+
+    $sddcmFQDN = $SddcManagerHostname + "." + $VMDomain
+
+    $ovfconfig.common.ROOT_PASSWORD.value = $SddcManagerRootPassword
+    $ovfconfig.common.VCF_PASSWORD.value = $SddcManagerVcfPassword
+    $ovfconfig.common.BASIC_AUTH_PASSWORD.value = $SddcManagerAdminPassword
+    $ovfconfig.common.BACKUP_PASSWORD.value = $SddcManagerBackupPassword
+    $ovfconfig.common.LOCAL_USER_PASSWORD.value = $SddcManagerLocalPassword
+    $ovfconfig.common.vami.hostname.value = $sddcmFQDN
+    $ovfconfig.Common.guestinfo.ntp.value = $VMNTP
+    $ovfconfig.Common.FIPS_ENABLE.value = $SddcManagerFIPSEnable
+    $ovfconfig.vami.SDDC_Manager.ip0.value = $SddcManagerIP
+    $ovfconfig.vami.SDDC_Manager.netmask0.value = $VMNetmask
+    $ovfconfig.vami.SDDC_Manager.gateway.value = $VMGateway
+    $ovfconfig.vami.SDDC_Manager.domain.value = $VMDomain
+    $ovfconfig.vami.SDDC_Manager.searchpath.value = $VMDomain
+    $ovfconfig.vami.SDDC_Manager.DNS.value = $VMDNS
+
+    My-Logger "Deploying SDDC Manager VM $SddcManagerDisplayName ..."
+    $vm = Import-VApp -Server $vc -Source $SDDCManagerOVA -OvfConfiguration $ovfconfig -Name $SddcManagerDisplayName -Location $cluster -VMHost $vmhost -Datastore $datastore -DiskStorageFormat thin
+
+    My-Logger "Powering On VM ..."
+    $vm | Start-Vm -RunAsync | Out-Null
+
+    My-Logger "Waiting 7 minutes for SDDC Manager VM to be up, meanwhile double-check no $SddcManagerHostname entry in ~\.ssh\known_hosts ..."
+    Start-Sleep -Seconds 420
 
     My-Logger "Disconnecting from new VCSA ..."
     Disconnect-VIServer $vc -Confirm:$false
@@ -770,18 +811,13 @@ if($uploadVCFImportTool -eq 1) {
     Disconnect-VIServer -Server $viConnection -Confirm:$false
 }
 
-if($generateVCFImportConvertCommand -eq 1) {
-    My-Logger "SSH to SDDC Manager $($SddcManagerHostname) using ``vcf`` account and run the following command in VCF Import Tool Directory:"
-    My-Logger " "
-    My-Logger "python3 vcf_brownfield.py convert --vcenter `'$($VCSAHostname + "." + $VMDomain)`' --sso-user `'administrator@$($VCSASSODomainName)`' --domain-name `'$($VCFManagementDomainName)`' --skip-nsx-deployment --sso-password 'VMware1!' --vcenter-root-password `'$($VCSARootPassword)`' --local-admin-password `'$($SddcManagerLocalPassword)`' --backup-password `'$($SddcManagerBackupPassword)`' --accept-trust --suppress-warnings"
-}
-
 if($generateNsxSpecJson -eq 1) {
+    $NsxBundleFile = Split-Path $NSXBundlePath -Leaf
     $vcfConfig = [ordered]@{
 	  "deploy_without_license_keys" = $true
-	  "form_factor" = "small"
+	  "form_factor" = $NsxFormFactor
 	  "admin_password" = "$SddcManagerAdminPassword"
-	  "install_bundle_path" = "/nfs/vmware/vcf/nfs-mount/bundle/bundle-124941.zip"
+	  "install_bundle_path" = "/nfs/vmware/vcf/nfs-mount/bundle/$NsxBundleFile"
 	  "cluster_ip" = "$NSXClusterVip"
 	  "cluster_fqdn" = "$NSXClusterVipHostname.$VMDomain"
 	  "manager_specs" = @([ordered]@{
@@ -820,18 +856,20 @@ if($uploadNSXBundlePath -eq 1) {
     My-Logger "Copying $NsxSpecJsonPath to SDDC Manager $SddcManagerDisplayName under /home/vcf ..."
     Copy-VMGuestFile -VM $sddcmVM -Source $NsxSpecJsonPath -Destination "/home/vcf/$NsxSpecJsonFile" -LocalToGuest -GuestUser "vcf" -GuestPassword $SddcManagerVcfPassword -Force -Confirm:$false
 	
-    My-Logger "Copying $NSXBundlePath to SDDC Manager $SddcManagerDisplayName under /nfs/vmware/vcf/nfs-mount/bundle ..."
-	scp -po StrictHostKeyChecking=no $NSXBundlePath "vcf@sddcm:/nfs/vmware/vcf/nfs-mount/bundle"
+    My-Logger "Input SDDC Manager password $SddcManagerVcfPassword to start Copying $NSXBundlePath to SDDC Manager $SddcManagerHostname under /nfs/vmware/vcf/nfs-mount/bundle ..."
+	scp -po StrictHostKeyChecking=no $NSXBundlePath "vcf@$($SddcManagerHostname):/nfs/vmware/vcf/nfs-mount/bundle"
 
     My-Logger "Disconnecting from $VIServer ..."
     Disconnect-VIServer -Server $viConnection -Confirm:$false
 }
 
-if($generateVCFImportDeployNSXCommand -eq 1) {
+
+if($generateVCFImportConvertCommand -eq 1) {
     My-Logger "SSH to SDDC Manager $($SddcManagerHostname) using ``vcf`` account and run the following command in VCF Import Tool Directory:"
     My-Logger " "
-    My-Logger "python3 vcf_brownfield.py deploy-nsx --vcenter `'$($VCSAHostname + "." + $VMDomain)`' --local-admin-password `'$($SddcManagerLocalPassword)`' --nsx-deployment-spec-path `'$('/home/vcf/' + $NsxSpecJsonFile)`'"
+    My-Logger "python3 vcf_brownfield.py convert --vcenter `'$($VCSAHostname + "." + $VMDomain)`' --sso-user `'administrator@$($VCSASSODomainName)`' --domain-name `'$($VCFManagementDomainName)`' --nsx-deployment-spec-path `'$('/home/vcf/' + $NsxSpecJsonFile)`' --auto-proceed --sso-password 'VMware1!' --vcenter-root-password `'$($VCSARootPassword)`' --local-admin-password `'$($SddcManagerLocalPassword)`' --backup-password `'$($SddcManagerBackupPassword)`' --accept-trust --suppress-warnings"
 }
+
 
 $EndTime = Get-Date
 $duration = [math]::Round((New-TimeSpan -Start $StartTime -End $EndTime).TotalMinutes,2)
