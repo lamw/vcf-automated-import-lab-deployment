@@ -8,11 +8,11 @@ $VIServer = "FILL_ME_IN"
 $VIUsername = "FILL_ME_IN"
 $VIPassword = "FILL_ME_IN"
 
-# Full Path to the Nested ESXi 8.0u3b OVA, SDDC 5.2.1.0 OVA, VCF Import Tool 5.2.1.0 & Extracted VCSA 8.0.3d ISO
+# Full Path to the Nested ESXi 8.0u3b OVA, SDDC 5.2.1.1 OVA, VCF Import Tool 5.2.1.1 & Extracted VCSA 8.0.3d ISO
 $NestedESXiApplianceOVA = "L:\Downloads\Nested_ESXi8.0u3b_Appliance_Template_v1.ova"
 $VCSAInstallerPath = "L:\Downloads\VMware-VCSA-all-8.0.3-24322831"
-$SDDCManagerOVA = "L:\Downloads\VCF-SDDC-Manager-Appliance-5.2.1.0-24307856.ova"
-$VCFImportToolpath = "L:\Downloads\vcf-brownfield-import-5.2.1.0-24307788.tar.gz"
+$SDDCManagerOVA = "L:\Downloads\VCF-SDDC-Manager-Appliance-5.2.1.1-24397777.ova"
+$VCFImportToolpath = "L:\Downloads\vcf-brownfield-import-5.2.1.1-24421574.tar.gz"
 
 # Full Path to VCF 5.2.1 NSX 4.2.1 Bundle and NSX spec file
 $NSXBundlePath = "L:\Downloads\bundle-133764.zip"
