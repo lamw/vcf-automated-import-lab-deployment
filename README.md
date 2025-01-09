@@ -33,10 +33,10 @@ Below is a diagram of what is deployed as part of the solution and you simply ne
      * that will scp the NSX bunde zip into SDDC Manager and,
      * generate the VCF Import Tool command deloy-nsx (note password $SddcManagerLocalPassword will be asked) and,
      * $SddcManagerHostname ssh key will be added to your ~/.ssh/known_hosts, upon retry delete the line start by sddcm,...
-  * updated vCenter link version 8.03Ua Official part of VCF 5.2 BOM
+  * updated vCenter link version 8.03Ua Official part of VCF 5.2.0.0 BOM
 
 * *29/11/2024**
-  * Branch Added support for VCF 5.2.1,
+  * Branch Added support for VCF 5.2.1.0,
      * Moved SCP the NSX bundle and merged nsx Json spec into convert generated command (mandatory in VCF 5.2.1 import tool),
      * Set VMKernel default gateway, that is a guardrails requirement of VCF 5.2.1 import tool "Checks if Per-NIC Default Gateway is disabled in the vSAN cluster" KB https://knowledge.broadcom.com/external/article/371494 or https://knowledge.broadcom.com/external/article/308257 This code tick Override Default Gateway in VMkernel Edit vCenter UI (Credit LucD for the borrowed code),
      * Moved SDDC Manager deployment after VSAN alarm cleanup to prevent delay in deployment and added 7 minutes wait for it to fully bootup
@@ -50,13 +50,19 @@ Below is a diagram of what is deployed as part of the solution and you simply ne
      * When to shutdown NSX to accomodate resources,
      * When need redeploy upon seeing DNS and NTP convert errors, 
      * Variables to set in case scp didn't succeed to continue the copy
-  * Related [Blog post](https://strivevirtually.net/post/automated-vmware-cloud-foundation-vcf-5.2.1-import-lab-with-nsx-deployment-script/)
+  * Related [Blog post](https://strivevirtually.net/post/automated-vmware-cloud-foundation-vcf-5.2.1.1-import-lab-with-nsx-deployment-script/)
+
+* *09/01/2025**
+  * Update BOM to VCF 5.2.1.1
+  * Updated FAQ with Considerations Before Converting or Importing Existing vSphere Environments into VMware Cloud Foundation
+  * Related [Blog post](https://strivevirtually.net/post/automated-vmware-cloud-foundation-vcf-5.2.1.1-import-lab-with-nsx-deployment-script/)
+
 
 ## Requirements
 
 | VCF Version | VCF Import Tool                                                                                                                                                                                                                              | SDDC Manager OVA                                                                                                                                                                                                                         | VCSA ISO                                                                                                                                                                                                    | Nested ESXi                                                       |
 |-------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
-| 5.2.1         | [ vcf-brownfield-import-5.2.1.0-24307788.tar.gz ](https://support.broadcom.com/group/ecx/productfiles?subFamily=VMware%20Cloud%20Foundation&displayGroup=VMware%20Cloud%20Foundation%205.2&release=5.2.1&os=&servicePk=523724&language=EN) | [VCF-SDDC-Manager-Appliance-5.2.1.0-24307856.ova](https://support.broadcom.com/group/ecx/productfiles?subFamily=VMware%20Cloud%20Foundation&displayGroup=VMware%20Cloud%20Foundation%205.2&release=5.2.1&os=&servicePk=523724&language=EN) | [VMware-VCSA-all-8.0.3-24322831.iso](https://support.broadcom.com/web/ecx/solutiondetails?patchId=5574) | [ Nested ESXi 8.0 Update 3b OVA ]( https://community.broadcom.com/flings ) |
+| 5.2.1.1         | [ vcf-brownfield-import-5.2.1.1-24421574.tar.gz ](https://support.broadcom.com/group/ecx/productfiles?subFamily=VMware%20Cloud%20Foundation&displayGroup=VMware%20Cloud%20Foundation%205.2&release=5.2.1&os=&servicePk=523724&language=EN) | [VCF-SDDC-Manager-Appliance-5.2.1.1-24397777.ova](https://support.broadcom.com/group/ecx/productfiles?subFamily=VMware%20Cloud%20Foundation&displayGroup=VMware%20Cloud%20Foundation%205.2&release=5.2.1&os=&servicePk=523724&language=EN) | [VMware-VCSA-all-8.0.3-24322831.iso](https://support.broadcom.com/web/ecx/solutiondetails?patchId=5574) | [ Nested ESXi 8.0 Update 3b OVA ]( https://community.broadcom.com/flings ) |
 
 * vCenter Server running at least vSphere 7.0 or later
     * If your physical storage is vSAN, please ensure you've applied the following setting as mentioned [here](https://www.williamlam.com/2013/11/how-to-run-nested-esxi-on-top-of-vsan.html)
@@ -92,8 +98,8 @@ This section describes the location of the files required for deployment which m
 ```console
 $NestedESXiApplianceOVA = "/root/Nested_ESXi8.0u3b_Appliance_Template_v1.ova"
 $VCSAInstallerPath = "/root/VMware-VCSA-all-8.0.3-24322831"
-$SDDCManagerOVA = "/root/VCF-SDDC-Manager-Appliance-5.2.1.0-24307856.ova"
-$VCFImportToolpath = "/root/vcf-brownfield-import-5.2.1.0-24307788.tar.gz"
+$SDDCManagerOVA = "/root/VCF-SDDC-Manager-Appliance-5.2.1.1-24397777.ova"
+$VCFImportToolpath = "/root/vcf-brownfield-import-5.2.1.1-24421574.tar.gz"
 ```
 
 Full Path to VCF 5.2.1 NSX 4.2.1 Bundle and, NSX spec file that will be generated. Path can be in windows form "c:\...\bundle-133764.zip"
@@ -225,6 +231,8 @@ Once you have saved your changes, you can now run the PowerCLI script as you nor
 There is additional verbose logging that outputs as a log file in your current working directory **vcf-import-lab-deployment.log**
 
 ## FAQ - Troubleshooting
+
+- [Considerations Before Converting or Importing Existing vSphere Environments into VMware Cloud Foundation](https://techdocs.broadcom.com/us/en/vmware-cis/vcf/vcf-5-2-and-earlier/5-2/map-for-administering-vcf-5-2/importing-existing-vsphere-environments-admin/considerations-before-converting-or-importing-existing-vsphere-environments-into-vcf-admin.html)
 
 - Before entering the convert command be sure to resize NSX cluster a single node using following
 ```console
