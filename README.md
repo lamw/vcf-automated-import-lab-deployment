@@ -56,13 +56,16 @@ Below is a diagram of what is deployed as part of the solution and you simply ne
   * Update BOM to VCF 5.2.1.1
   * Updated FAQ with Considerations Before Converting or Importing Existing vSphere Environments into VMware Cloud Foundation
   * Related [Blog post](https://strivevirtually.net/post/automated-vmware-cloud-foundation-vcf-5.2.1.1-import-lab-with-nsx-deployment-script/)
+ 
+* *30/01/2025**
+  * Update BOM to VCF 5.2.1.2
 
 
 ## Requirements
 
 | VCF Version | VCF Import Tool                                                                                                                                                                                                                              | SDDC Manager OVA                                                                                                                                                                                                                         | VCSA ISO                                                                                                                                                                                                    | Nested ESXi                                                       |
 |-------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
-| 5.2.1.1         | [ vcf-brownfield-import-5.2.1.1-24421574.tar.gz ](https://support.broadcom.com/group/ecx/productfiles?subFamily=VMware%20Cloud%20Foundation&displayGroup=VMware%20Cloud%20Foundation%205.2&release=5.2.1&os=&servicePk=523724&language=EN) | [VCF-SDDC-Manager-Appliance-5.2.1.1-24397777.ova](https://support.broadcom.com/group/ecx/productfiles?subFamily=VMware%20Cloud%20Foundation&displayGroup=VMware%20Cloud%20Foundation%205.2&release=5.2.1&os=&servicePk=523724&language=EN) | [VMware-VCSA-all-8.0.3-24322831.iso](https://support.broadcom.com/web/ecx/solutiondetails?patchId=5574) | [ Nested ESXi 8.0 Update 3b OVA ]( https://community.broadcom.com/flings ) |
+| 5.2.1.2         | [ vcf-brownfield-import-5.2.1.2-24494579.tar.gz ](https://support.broadcom.com/group/ecx/productfiles?subFamily=VMware%20Cloud%20Foundation&displayGroup=VMware%20Cloud%20Foundation%205.2&release=5.2.1&os=&servicePk=523724&language=EN) | [VCF-SDDC-Manager-Appliance-5.2.1.1-24397777.ova](https://support.broadcom.com/group/ecx/productfiles?subFamily=VMware%20Cloud%20Foundation&displayGroup=VMware%20Cloud%20Foundation%205.2&release=5.2.1&os=&servicePk=523724&language=EN) | [VMware-VCSA-all-8.0.3-24322831.iso](https://support.broadcom.com/web/ecx/solutiondetails?patchId=5574) | [ Nested ESXi 8.0 Update 3b OVA ]( https://community.broadcom.com/flings ) |
 
 * vCenter Server running at least vSphere 7.0 or later
     * If your physical storage is vSAN, please ensure you've applied the following setting as mentioned [here](https://www.williamlam.com/2013/11/how-to-run-nested-esxi-on-top-of-vsan.html)
@@ -99,7 +102,7 @@ This section describes the location of the files required for deployment which m
 $NestedESXiApplianceOVA = "/root/Nested_ESXi8.0u3b_Appliance_Template_v1.ova"
 $VCSAInstallerPath = "/root/VMware-VCSA-all-8.0.3-24322831"
 $SDDCManagerOVA = "/root/VCF-SDDC-Manager-Appliance-5.2.1.1-24397777.ova"
-$VCFImportToolpath = "/root/vcf-brownfield-import-5.2.1.1-24421574.tar.gz"
+$VCFImportToolpath = "/root/vcf-brownfield-import-5.2.1.2-24494579.tar.gz"
 ```
 
 Full Path to VCF 5.2.1 NSX 4.2.1 Bundle and, NSX spec file that will be generated. Path can be in windows form "c:\...\bundle-133764.zip"
