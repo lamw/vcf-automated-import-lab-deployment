@@ -58,7 +58,7 @@ Below is a diagram of what is deployed as part of the solution and you simply ne
   * Related [Blog post](https://strivevirtually.net/post/automated-vmware-cloud-foundation-vcf-5.2.1.1-import-lab-with-nsx-deployment-script/)
  
 * *30/01/2025**
-  *Update BOM to VCF 5.2.1.2 
+  *Update BOM to VCF 5.2.1.2
 
 
 ## Requirements
